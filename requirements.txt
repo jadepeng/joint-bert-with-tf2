@@ -1,0 +1,4 @@
+absl-py
+tensorflow>=2.0.0
+transformers
+torch
