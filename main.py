@@ -35,13 +35,9 @@ def main(argv):
     logging.info('after initializing model')
 
     model.fit()
-
     model.get_model().summary()
-
     model.save_model("nlu.h5")
 
-
-    # TODO(Ebi): Save trained model
 
 
 if __name__ == '__main__':
