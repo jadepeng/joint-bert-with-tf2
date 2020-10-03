@@ -36,7 +36,9 @@ class Process(object):
                  slots_set):
         self._dataset = {'sentence': sentence, 'intent': intent, 'slot': slot}
         self._intents_set = intents_set
+        print(intents_set)
         self._slots_set = slots_set
+        print(slots_set)
         #self._intents_num = len(intents_set)
         self._tokenizer = BertTokenizer.from_pretrained(config.bert_model_name)
         self._vectorize()
@@ -65,8 +67,10 @@ class Process(object):
         mask = list()
         def prepare_fn(sentence):
             sequence_dict = self._tokenizer.encode_plus(sentence,
+                                                        add_special_tokens=True,
                                                         max_length=max_len,
                                                         pad_to_max_length=True,
+                                                        return_attention_mask = True,
                                                         truncation=True)
              
 
@@ -89,6 +93,7 @@ class Process(object):
         self._intents = np.array([intents_list.index(x)
                                     for x in self._dataset['intent'].as_numpy_iterator()])
         logging.info('intents prepared as one-hot vectors')
+        print(self._intents.shape)
 
         # make fixed length multi-hot for slots
         slots_list = list(self._slots_set)
@@ -117,6 +122,7 @@ class Process(object):
                                     for x, y in zip(self._dataset['slot'].as_numpy_iterator(),
                                                     self._dataset['sentence'].as_numpy_iterator())])
         logging.info('slots labels prepared as multi-hot vectors')
+        print(self._slots.shape)
 
 
 class ProcessFactory(object):

@@ -2,9 +2,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 from absl import logging
 import tensorflow as tf
-from transformers import TFBertModel
+from tensorflow.python.keras.layers import TimeDistributed, Dense
+from transformers import TFBertModel, BertTokenizer
 
 import config
 from preprocess import Process
@@ -20,7 +22,7 @@ class CustomBertLayer(tf.keras.layers.Layer):
 
     def _load_bert(self):
         model = TFBertModel.from_pretrained(config.bert_model_name)
-        
+
         logging.info('BERT weights loaded')
         return model
 
@@ -29,7 +31,7 @@ class CustomBertLayer(tf.keras.layers.Layer):
 
     def call(self, inputs):
         result = self._bert(inputs=inputs)
-        
+
         return result
 
 
@@ -44,19 +46,29 @@ class CustomModel(tf.keras.Model):
     """
 
     def __init__(self,
-                 intents_num : int,
-                 slots_num : int):
+                 intents_num: int,
+                 slots_num: int):
         super().__init__(name="joint_intent_slot")
         self._bert_layer = CustomBertLayer()
         self._dropout = tf.keras.layers.Dropout(rate=config.dropout_rate)
         self._intent_classifier = tf.keras.layers.Dense(intents_num,
                                                         activation='softmax',
                                                         name='intent_classifier')
-        self._slot_classifier = tf.keras.layers.Dense(slots_num,
+        self._slot_classifier = TimeDistributed(Dense(slots_num,
                                                       activation='softmax',
-                                                      name='slot_classifier')
+                                                      name='slot_classifier'), name="slot_time_distributed")
 
     def call(self, inputs, training=False, **kwargs):
+        # bert 编码 （序列向量，池化向量（句向量））
+        # (?, 768)
+        # (?, max_length, 768)
+
+        # x: {input_ids，attention_mask}
+        # y: {slots, intents}
+        #
+        # slots:  [[0,0,1,2,...],[],[]]  multi_hot
+        # intents: [0,1,2,3,2,3] onehot
+
         sequence_output, pooled_output = self._bert_layer(inputs, **kwargs)
 
         sequence_output = self._dropout(sequence_output, training)
@@ -84,10 +96,10 @@ class JointCategoricalBert(object):
     """
 
     def __init__(self,
-                 train : Process,
-                 validation : Process,
-                 intents_num : int,
-                 slots_num : int): 
+                 train: Process,
+                 validation: Process,
+                 intents_num: int,
+                 slots_num: int):
         self._dataset = {'train': train, 'validation': validation}
         self._model = CustomModel(intents_num=intents_num, slots_num=slots_num)
         self._compile()
@@ -95,6 +107,11 @@ class JointCategoricalBert(object):
     def _compile(self):
         """Compile the model with hyper-parameters that defined in the config file.
         """
+        #  如果你的 targets 是 one-hot 编码，用 categorical_crossentropy
+        # 　　one-hot 编码：[0, 0, 1], [1, 0, 0], [0, 1, 0]
+        # 如果你的 tagets 是 数字编码 ，用 sparse_categorical_crossentropy
+        # 　　数字编码：2, 0, 1
+
         optimizer = tf.keras.optimizers.Adam(learning_rate=config.learning_rate)
         losses = [tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)]
@@ -107,19 +124,44 @@ class JointCategoricalBert(object):
                             metrics=metrics)
         logging.info("model compiled")
 
+    def fit_features(self, train_features,validation_features):
+        """Fit the compiled model to the dataset. Hyper-parameters such as number of
+        epochs defined in the config file.
+        """
+        logging.info('before fit model')
+
+        self._model.fit(
+            {
+                "input_ids": train_features[0],
+                "attention_mask": train_features[1],
+                "token_type_ids": train_features[2]
+            },
+            (train_features[3], train_features[4]),
+            validation_data=(
+                {
+                    "input_ids": validation_features[0],
+                    "attention_mask": validation_features[1],
+                    "token_type_ids": validation_features[2]
+                },
+                (validation_features[3], validation_features[4])),
+            epochs=config.epochs_num,
+            batch_size=config.batch_size)
+
+        return self._model
 
     def fit(self):
         """Fit the compiled model to the dataset. Hyper-parameters such as number of
         epochs defined in the config file.
         """
         logging.info('before fit model')
+
         self._model.fit(
             self._dataset['train'].get_tokens(),
             (self._dataset['train'].get_slots(), self._dataset['train'].get_intents()),
             validation_data=(
                 self._dataset['validation'].get_tokens(),
                 (self._dataset['validation'].get_slots(),
-                    self._dataset['validation'].get_intents())),
+                 self._dataset['validation'].get_intents())),
             epochs=config.epochs_num,
             batch_size=config.batch_size)
 
@@ -128,9 +170,26 @@ class JointCategoricalBert(object):
     def get_model(self):
         return self._model
 
-    def save_model(self,model_file):
-        self._model.save(model_file)
+    def save_model(self, model_file):
+        self._model.save_weights(model_file)
 
-    def load_model(self,model_file):
+    def load_model(self, model_file):
         self._model.load_weights(model_file)
 
+
+if __name__ == '__main__':
+    sentence = 'i would like a flight traveling one way from phoenix to san diego on april first'
+    model = TFBertModel.from_pretrained(config.bert_model_name)
+    tokenizer = BertTokenizer.from_pretrained(config.bert_model_name)
+    sequence_dict = tokenizer.encode_plus(sentence,
+                                          add_special_tokens=True,
+                                          max_length=50,
+                                          pad_to_max_length=True,
+                                          truncation=True)
+    sequence_output, pooled_output = model([np.array([sequence_dict['input_ids']]),
+                                            np.array([sequence_dict['token_type_ids']]),
+                                            np.array([sequence_dict['attention_mask']])])
+    print(sequence_output)
+    print(pooled_output)
+    print(sequence_output.shape)
+    print(pooled_output.shape)

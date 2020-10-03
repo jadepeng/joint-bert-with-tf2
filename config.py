@@ -16,6 +16,6 @@ tokens_max_len = 50
 learning_rate = 5e-5
 dropout_rate = 0.1
 loss_weights = {'slot': 3., 'intent': 1.0}
-epochs_num = 5
+epochs_num = 1
 batch_size = 32
 
