@@ -5,8 +5,8 @@ from __future__ import print_function
 import numpy as np
 from absl import logging
 import tensorflow as tf
-from tensorflow.python.keras.layers import TimeDistributed, Dense
-from transformers import TFBertModel, BertTokenizer
+from tensorflow.python.keras.layers import TimeDistributed, Dense, Bidirectional, LSTM
+from transformers import TFBertModel, BertTokenizer, AdamWeightDecay
 
 import config
 from preprocess import Process
@@ -54,9 +54,13 @@ class CustomModel(tf.keras.Model):
         self._intent_classifier = tf.keras.layers.Dense(intents_num,
                                                         activation='softmax',
                                                         name='intent_classifier')
+        # self._intent_gru = Bidirectional(LSTM(128, dropout=0.1), name="bi-lstm")
         self._slot_classifier = TimeDistributed(Dense(slots_num,
                                                       activation='softmax',
                                                       name='slot_classifier'), name="slot_time_distributed")
+        self._intent_dense = tf.keras.layers.Dense(units=768, activation="tanh")
+        self.intents_num = intents_num
+        self.slots_num = slots_num
 
     def call(self, inputs, training=False, **kwargs):
         # bert 编码 （序列向量，池化向量（句向量））
@@ -75,7 +79,12 @@ class CustomModel(tf.keras.Model):
         slot_logits = self._slot_classifier(sequence_output)
 
         pooled_output = self._dropout(pooled_output, training)
-        intent_logits = self._intent_classifier(pooled_output)
+        intent_logits = self._intent_dense(pooled_output)
+        intent_logits = self._dropout(intent_logits)
+        # intent_logits = tf.keras.layers.Dense(units=len(classes), activation="softmax")(intent_logits)
+
+        # pooled_output = self._intent_gru(pooled_output, training)
+        intent_logits = self._intent_classifier(intent_logits)
 
         return slot_logits, intent_logits
 
@@ -112,7 +121,7 @@ class JointCategoricalBert(object):
         # 如果你的 tagets 是 数字编码 ，用 sparse_categorical_crossentropy
         # 　　数字编码：2, 0, 1
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=config.learning_rate)
+        optimizer = AdamWeightDecay(learning_rate=config.learning_rate, epsilon=1e-8)
         losses = [tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)]
         loss_weights = [config.loss_weights['slot'], config.loss_weights['intent']]

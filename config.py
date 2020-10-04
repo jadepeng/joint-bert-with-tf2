@@ -14,7 +14,7 @@ validation_set_ratio = 0.05
 # compile and fit
 tokens_max_len = 50
 learning_rate = 5e-5
-dropout_rate = 0.1
+dropout_rate = 0.5
 loss_weights = {'slot': 3., 'intent': 1.0}
 epochs_num = 1
 batch_size = 32

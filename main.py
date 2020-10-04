@@ -116,7 +116,7 @@ def main(argv):
     #     slots_num=data_factory.get_slots_num())
     logging.info('after initializing model')
 
-    model.fit()
+    # model.fit()
     model.get_model().summary()
     model.save_model("nlu")
 
