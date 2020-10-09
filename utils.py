@@ -12,6 +12,7 @@ from transformers import BertTokenizer, DistilBertTokenizer, AlbertTokenizer
 from model import JointBERT, JointDistilBERT, JointAlbert
 
 MODEL_CLASSES = {
+    'bert-cn': (BertConfig, JointBERT, BertTokenizer),
     'bert': (BertConfig, JointBERT, BertTokenizer),
     'distilbert': (DistilBertConfig, JointDistilBERT, DistilBertTokenizer),
     'albert': (AlbertConfig, JointAlbert, AlbertTokenizer)
@@ -19,6 +20,7 @@ MODEL_CLASSES = {
 
 MODEL_PATH_MAP = {
     'bert': 'bert-base-uncased',
+    'bert-cn': 'hfl/chinese-roberta-wwm-ext',
     'distilbert': 'distilbert-base-uncased',
     'albert': 'albert-base-v1'
 }
