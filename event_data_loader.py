@@ -19,9 +19,9 @@ def bio_sent(sent, ner_list):
         type = item[-1]
         for i in range(0, len(sent) - len(subj) + 1):
             if sent[i:i + len(subj)] == subj:
-                bio_list[i] = 'B-' + type
-                for j in range(1, len(subj)):
-                    bio_list[i + j] = 'I-' + type
+                # bio_list[i] = 'B-' + type
+                for j in range(len(subj)):
+                    bio_list[i + j] = type
     return sent, bio_list
 
 
@@ -37,7 +37,7 @@ def load_ner(input, output):
             if len(data) == 0:
                 continue
             data = json.loads(data)
-            question = data.get("text").strip().replace("\n","")
+            question = data.get("text").strip().replace("\n", "")
             ner_list = []
 
             if "event_list" not in data:
@@ -48,8 +48,8 @@ def load_ner(input, output):
                 label = item.get("event_type")
                 label_fs.write(label + '\n')
                 labels.add(label)
-                slots.add(label)
-                ner_list.append([item.get("trigger"), label])
+                # slots.add(label)
+                # ner_list.append([item.get("trigger"), label])
                 event_arguments = item.get("arguments")
                 for event_argument in event_arguments:
                     slots.add(event_argument.get("role"))
@@ -67,15 +67,18 @@ def load_ner(input, output):
     label_fs.close()
     seq_in_fs.close()
     seq_out_fs.close()
-    #
-    # with open(output + "intent_label.txt", 'w', encoding='utf-8') as fs:
-    #     fs.write("UNK\n")
-    #     fs.writelines('\n'.join(labels))
-    #
-    # with open(output + "slot_label.txt", 'w', encoding='utf-8') as fs:
-    #     fs.write("O\n")
-    #     for slot in slots:
-    #         fs.write('B-' + slot + "\n" + 'I-' + slot + "\n")
+    if input == "data/event/train/train.json":
+        #
+        with open("data/event/intent_label.txt", 'w', encoding='utf-8') as fs:
+            fs.write("UNK\n")
+            fs.writelines('\n'.join(labels))
+
+        with open("data/event/slot_label.txt", 'w', encoding='utf-8') as fs:
+            fs.write("O\n")
+            fs.write("UNK\n")
+            for slot in slots:
+                # 'B-' + slot + "\n" + 'I-' +
+                fs.write(slot + "\n")
 
 
 parser = argparse.ArgumentParser(description='AIMind NER Data Loader')
@@ -84,4 +87,6 @@ parser.add_argument('--output', action="store", default="data/event/dev/", type=
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    load_ner(args.input, args.output)
+    load_ner("data/event/dev/dev.json", "data/event/dev/")
+    load_ner("data/event/train/train.json", "data/event/train/")
+    load_ner("data/event/test/test1.json", "data/event/test/")
