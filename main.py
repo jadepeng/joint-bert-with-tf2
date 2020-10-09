@@ -11,7 +11,7 @@ from transformers import BertTokenizer
 
 import config
 from preprocess import ProcessFactory
-from joint_model import JointCategoricalBert
+from joint_model import JointCategoricalBert, IntentCategoricalBert
 from data_loader import load_tf_features
 
 MODEL_PATH_MAP = {
@@ -101,13 +101,9 @@ def main(argv):
     train_features = load_tf_features(args, tokenizer, mode="train")
 
     intents = read_file("data/atis/intent_label.txt")
-    slots = read_file("data/atis/slot_label.txt")
 
-    model = JointCategoricalBert(
-        train=[],
-        validation=[],
-        intents_num=len(intents),
-        slots_num=len(slots))
+    model = IntentCategoricalBert(
+        intents_num=len(intents))
 
     BUFFER_SIZE = 100000
 
@@ -126,7 +122,15 @@ def main(argv):
         train_features[3]
     ))
 
-    model.get_model().fit(train_ds, validation_data=dev_ds, steps_per_epoch=32)
+    def get_label(features, label):
+        return label
+
+    target_dist = [1.0 / len(intents)] * len(intents)
+
+    resampler = tf.data.experimental.rejection_resample(get_label, target_dist)
+    resample_ds = train_ds.unbatch().apply(resampler).batch(64)
+
+    model.get_model().fit(resample_ds, validation_data=dev_ds, steps_per_epoch=64)
 
     # model.fit_features(train_features, dev_features)
 
