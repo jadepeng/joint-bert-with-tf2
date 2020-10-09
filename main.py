@@ -14,24 +14,23 @@ import config
 from preprocess import ProcessFactory
 from joint_model import JointCategoricalBert, IntentCategoricalBert
 from data_loader import load_tf_features
-
-# import pandas as pd
-# import seaborn as sns
-# from pylab import rcParams
-# import matplotlib.pyplot as plt
-# from matplotlib.ticker import MaxNLocator
-# from matplotlib import rc
+import pandas as pd
+import seaborn as sns
+from pylab import rcParams
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+from matplotlib import rc
 
 # %matplotlib inline
 # %config InlineBackend.figure_format='retina'
 
-# sns.set(style='whitegrid', palette='muted', font_scale=1.2)
-#
-# HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
-#
-# sns.set_palette(sns.color_palette(HAPPY_COLORS_PALETTE))
-#
-# rcParams['figure.figsize'] = 12, 8
+sns.set(style='whitegrid', palette='muted', font_scale=1.2)
+
+HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
+
+sns.set_palette(sns.color_palette(HAPPY_COLORS_PALETTE))
+
+rcParams['figure.figsize'] = 12, 8
 
 MODEL_PATH_MAP = {
     'bert': 'bert-base-uncased',
@@ -41,7 +40,7 @@ MODEL_PATH_MAP = {
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--task", default="atis", type=str, help="The name of the task to train")
+parser.add_argument("--task", default="snips", type=str, help="The name of the task to train")
 parser.add_argument("--model_dir", default="atis_model", type=str, help="Path to save, load model")
 parser.add_argument("--data_dir", default="./data", type=str, help="The input data dir")
 parser.add_argument("--intent_label_file", default="intent_label.txt", type=str, help="Intent Label file")
@@ -104,18 +103,19 @@ def main(argv):
     """
     del argv
 
-    # seq_in = read_file("data/atis/train/seq.in")
-    # # seq_out =  read_file("data/atis/train/seq.out")
-    # label = read_file("data/atis/train/label")
-    #
-    # df = pd.DataFrame({'seq':seq_in,'label':label})
-    #
-    # print(df.describe())
-    #
-    # chart = sns.countplot(df.label, palette=HAPPY_COLORS_PALETTE)
-    # plt.title("Number of texts per intent")
-    # chart.set_xticklabels(chart.get_xticklabels(), rotation=30, horizontalalignment='right')
-    # plt.show()
+    seq_in = read_file("data/snips/train/seq.in")
+    # seq_out =  read_file("data/atis/train/seq.out")
+    label = read_file("data/snips/train/label")
+
+    df = pd.DataFrame({'seq':seq_in,'label':label})
+
+    print(df.describe())
+
+    chart = sns.countplot(df.label, palette=HAPPY_COLORS_PALETTE)
+    plt.title("Number of texts per intent")
+    chart.set_xticklabels(chart.get_xticklabels(), rotation=30, horizontalalignment='right')
+    plt.show()
+
 
     tf.config.experimental_run_functions_eagerly(config.tf_eager_execution)
 
@@ -132,10 +132,12 @@ def main(argv):
     dev_features = load_tf_features(args, tokenizer, mode="dev")
     train_features = load_tf_features(args, tokenizer, mode="train")
 
-    intents = read_file("data/atis/intent_label.txt")
+    intents = read_file("data/snips/intent_label.txt")
+    slots = read_file("data/snips/slot_label.txt")
 
-    model = IntentCategoricalBert(
-        intents_num=len(intents))
+    model = JointCategoricalBert(
+            intents_num=len(intents),
+            slots_num=len(slots))
 
     BUFFER_SIZE = 100000
 
@@ -169,12 +171,9 @@ def main(argv):
     # for features, labels in balanced_ds.take(10):
     #     print(labels.numpy())
 
-    model.get_model().fit(train_features[0], train_features[4],
-                          validation_data=(dev_features[0], dev_features[4]),
-                          epochs=5,
-                          steps_per_epoch=64)
+    # model.get_model().fit(train_features[0],train_features[4], validation_data=(train_features[0],train_features[4]), steps_per_epoch=64)
 
-    # model.fit_features(train_features, dev_features)
+    model.fit_features(train_features, dev_features)
 
     # model = JointCategoricalBert(
     #     train=data['train'],

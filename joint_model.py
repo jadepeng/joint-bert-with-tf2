@@ -197,11 +197,8 @@ class JointCategoricalBert(object):
     """
 
     def __init__(self,
-                 train: Process,
-                 validation: Process,
                  intents_num: int,
                  slots_num: int):
-        self._dataset = {'train': train, 'validation': validation}
         self._model = CustomModel(intents_num=intents_num, slots_num=slots_num)
         self._compile()
 
