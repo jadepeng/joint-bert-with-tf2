@@ -37,11 +37,11 @@ def load_ner(input, output):
             if len(data) == 0:
                 continue
             data = json.loads(data)
-            question = data.get("text").strip()
+            question = data.get("text").strip().replace("\n","")
             ner_list = []
-            seq_in_fs.write(' '.join(list(question)) + '\n')
 
             if "event_list" not in data:
+                seq_in_fs.write(' '.join(list(question)) + '\n')
                 continue
 
             for item in data["event_list"]:
@@ -56,10 +56,13 @@ def load_ner(input, output):
                     ner_list.append([event_argument.get("argument"), event_argument.get("role")])
                 sent, bio_list = bio_sent(question, ner_list)
                 for char, tag in zip(sent, bio_list):
-                    if not char:
-                        print(sent)
+                    if char == ' ':
+                        continue
                     seq_out_fs.write(tag + ' ')
+                    seq_in_fs.write(char + ' ')
+
                 seq_out_fs.write('\n')
+                seq_in_fs.write('\n')
                 break
     label_fs.close()
     seq_in_fs.close()
@@ -69,15 +72,15 @@ def load_ner(input, output):
     #     fs.write("UNK\n")
     #     fs.writelines('\n'.join(labels))
     #
-    # with open(output + "slot_labels.txt", 'w', encoding='utf-8') as fs:
+    # with open(output + "slot_label.txt", 'w', encoding='utf-8') as fs:
     #     fs.write("O\n")
     #     for slot in slots:
     #         fs.write('B-' + slot + "\n" + 'I-' + slot + "\n")
 
 
 parser = argparse.ArgumentParser(description='AIMind NER Data Loader')
-parser.add_argument('--input', action="store", default="data/event/test/test1.json", type=str)
-parser.add_argument('--output', action="store", default="data/event/test/", type=str)
+parser.add_argument('--input', action="store", default="data/event/dev/dev.json", type=str)
+parser.add_argument('--output', action="store", default="data/event/dev/", type=str)
 
 if __name__ == '__main__':
     args = parser.parse_args()
