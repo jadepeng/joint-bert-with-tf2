@@ -70,6 +70,7 @@ args = parser.parse_args()
 
 args.model_name_or_path = MODEL_PATH_MAP[args.model_type]
 
+
 def read_file(input_file, quotechar=None):
     """Reads a tab separated value file."""
     with open(input_file, "r", encoding="utf-8") as f:
@@ -77,6 +78,7 @@ def read_file(input_file, quotechar=None):
         for line in f:
             lines.append(line.strip())
         return lines
+
 
 def main(argv):
     """Main function for training process.
@@ -107,7 +109,26 @@ def main(argv):
         intents_num=len(intents),
         slots_num=len(slots))
 
-    model.fit_features(train_features, dev_features)
+    BUFFER_SIZE = 100000
+
+    dev_ds = tf.data.Dataset.from_tensor_slices((
+        dev_features[0],
+        dev_features[3]
+    ))
+
+    for features, label in dev_ds.take(1):
+        print("Features:\n", features.numpy())
+        print()
+        print("Label: ", label[0].numpy())
+
+    train_ds = tf.data.Dataset.from_tensor_slices((
+        train_features[0],
+        train_features[3]
+    ))
+
+    model.get_model().fit(train_ds, validation_data=dev_ds, steps_per_epoch=32)
+
+    # model.fit_features(train_features, dev_features)
 
     # model = JointCategoricalBert(
     #     train=data['train'],
