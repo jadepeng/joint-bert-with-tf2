@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import argparse
+import os
 
 from absl import logging
 from absl import app
@@ -13,6 +14,24 @@ import config
 from preprocess import ProcessFactory
 from joint_model import JointCategoricalBert, IntentCategoricalBert
 from data_loader import load_tf_features
+
+# import pandas as pd
+# import seaborn as sns
+# from pylab import rcParams
+# import matplotlib.pyplot as plt
+# from matplotlib.ticker import MaxNLocator
+# from matplotlib import rc
+
+# %matplotlib inline
+# %config InlineBackend.figure_format='retina'
+
+# sns.set(style='whitegrid', palette='muted', font_scale=1.2)
+#
+# HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
+#
+# sns.set_palette(sns.color_palette(HAPPY_COLORS_PALETTE))
+#
+# rcParams['figure.figsize'] = 12, 8
 
 MODEL_PATH_MAP = {
     'bert': 'bert-base-uncased',
@@ -85,6 +104,19 @@ def main(argv):
     """
     del argv
 
+    # seq_in = read_file("data/atis/train/seq.in")
+    # # seq_out =  read_file("data/atis/train/seq.out")
+    # label = read_file("data/atis/train/label")
+    #
+    # df = pd.DataFrame({'seq':seq_in,'label':label})
+    #
+    # print(df.describe())
+    #
+    # chart = sns.countplot(df.label, palette=HAPPY_COLORS_PALETTE)
+    # plt.title("Number of texts per intent")
+    # chart.set_xticklabels(chart.get_xticklabels(), rotation=30, horizontalalignment='right')
+    # plt.show()
+
     tf.config.experimental_run_functions_eagerly(config.tf_eager_execution)
 
     tokenizer = BertTokenizer.from_pretrained(config.bert_model_name)
@@ -107,30 +139,40 @@ def main(argv):
 
     BUFFER_SIZE = 100000
 
-    dev_ds = tf.data.Dataset.from_tensor_slices((
-        dev_features[0],
-        dev_features[3]
-    ))
+    # dev_ds = tf.data.Dataset.from_tensor_slices((
+    #     dev_features[0],
+    #     dev_features[4]
+    # ))
+    #
+    #
+    #
+    # train_ds = tf.data.Dataset.from_tensor_slices((
+    #     train_features[0],
+    #     train_features[4]
+    # ))
 
-    for features, label in dev_ds.take(1):
-        print("Features:\n", features.numpy())
-        print()
-        print("Label: ", label[0].numpy())
+    # for features, label in train_ds.take(1):
+    #     print("Features:\n", features.numpy())
+    #     print()
+    #     print("Label: ", label.numpy())
+    #
+    # def get_label(features, label):
+    #     return label
+    #
+    # target_dist = [1.0 / (len(intents)-1)] * len(intents)
+    # target_dist[0] = 0
+    #
+    # resampler = tf.data.experimental.rejection_resample(get_label,target_dist)
+    # resample_ds = train_ds.unbatch().apply(resampler).batch(64)
+    #
+    # balanced_ds = resample_ds.map(lambda extra_label, features_and_label: features_and_label)
+    # for features, labels in balanced_ds.take(10):
+    #     print(labels.numpy())
 
-    train_ds = tf.data.Dataset.from_tensor_slices((
-        train_features[0],
-        train_features[3]
-    ))
-
-    def get_label(features, label):
-        return label
-
-    target_dist = [1.0 / len(intents)] * len(intents)
-
-    resampler = tf.data.experimental.rejection_resample(get_label, target_dist)
-    resample_ds = train_ds.unbatch().apply(resampler).batch(64)
-
-    model.get_model().fit(resample_ds, validation_data=dev_ds, steps_per_epoch=64)
+    model.get_model().fit(train_features[0], train_features[4],
+                          validation_data=(dev_features[0], dev_features[4]),
+                          epochs=5,
+                          steps_per_epoch=64)
 
     # model.fit_features(train_features, dev_features)
 
