@@ -27,13 +27,13 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--task", default="atis", type=str, help="The name of the task to train")
-    parser.add_argument("--model_dir", default="atis_model", type=str, help="Path to save, load model")
+    parser.add_argument("--task", default="snips", type=str, help="The name of the task to train")
+    parser.add_argument("--model_dir", default="snips_model", type=str, help="Path to save, load model")
     parser.add_argument("--data_dir", default="./data", type=str, help="The input data dir")
     parser.add_argument("--intent_label_file", default="intent_label.txt", type=str, help="Intent Label file")
     parser.add_argument("--slot_label_file", default="slot_label.txt", type=str, help="Slot Label file")
 
-    parser.add_argument("--model_type", default="bert", type=str, help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
+    parser.add_argument("--model_type", default="albert", type=str, help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
 
     parser.add_argument('--seed', type=int, default=1234, help="random seed for initialization")
     parser.add_argument("--train_batch_size", default=32, type=int, help="Batch size for training.")
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser.add_argument('--logging_steps', type=int, default=200, help="Log every X updates steps.")
     parser.add_argument('--save_steps', type=int, default=200, help="Save checkpoint every X updates steps.")
 
-    parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
+    parser.add_argument("--do_train", action="store_true",default=True, help="Whether to run training.")
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
     parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
 

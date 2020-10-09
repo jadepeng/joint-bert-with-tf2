@@ -57,14 +57,7 @@ class Trainer(object):
         scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=self.args.warmup_steps, num_training_steps=t_total)
 
         # Train!
-        logger.info("***** Running training *****")
-        logger.info("  Num examples = %d", len(self.train_dataset))
-        logger.info("  Num Epochs = %d", self.args.num_train_epochs)
-        logger.info("  Total train batch size = %d", self.args.train_batch_size)
-        logger.info("  Gradient Accumulation steps = %d", self.args.gradient_accumulation_steps)
-        logger.info("  Total optimization steps = %d", t_total)
-        logger.info("  Logging steps = %d", self.args.logging_steps)
-        logger.info("  Save steps = %d", self.args.save_steps)
+        self.log_train_info(t_total)
 
         global_step = 0
         tr_loss = 0.0
@@ -116,6 +109,16 @@ class Trainer(object):
                 break
 
         return global_step, tr_loss / global_step
+
+    def log_train_info(self, t_total):
+        logger.info("***** Running training *****")
+        logger.info("  Num examples = %d", len(self.train_dataset))
+        logger.info("  Num Epochs = %d", self.args.num_train_epochs)
+        logger.info("  Total train batch size = %d", self.args.train_batch_size)
+        logger.info("  Gradient Accumulation steps = %d", self.args.gradient_accumulation_steps)
+        logger.info("  Total optimization steps = %d", t_total)
+        logger.info("  Logging steps = %d", self.args.logging_steps)
+        logger.info("  Save steps = %d", self.args.save_steps)
 
     def evaluate(self, mode):
         if mode == 'test':
